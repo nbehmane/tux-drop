@@ -1,4 +1,4 @@
-obj/cli.o: src/cli.c internal_includes/cli-internal.h \
+obj/cli.o: src/cli.c internal-includes/cli-internal.h \
  /usr/include/glib-2.0/glib.h /usr/include/glib-2.0/glib/galloca.h \
  /usr/include/glib-2.0/glib/gtypes.h \
  /usr/lib/glib-2.0/include/glibconfig.h \
@@ -69,8 +69,8 @@ obj/cli.o: src/cli.c internal_includes/cli-internal.h \
  /usr/include/glib-2.0/glib/deprecated/grel.h \
  /usr/include/glib-2.0/glib/deprecated/gthread.h \
  /usr/include/glib-2.0/glib/glib-autocleanups.h include/bluez.h \
- internal_includes/bluez-internal.h
-internal_includes/cli-internal.h:
+ internal-includes/bluez-internal.h
+internal-includes/cli-internal.h:
 /usr/include/glib-2.0/glib.h:
 /usr/include/glib-2.0/glib/galloca.h:
 /usr/include/glib-2.0/glib/gtypes.h:
@@ -157,4 +157,4 @@ internal_includes/cli-internal.h:
 /usr/include/glib-2.0/glib/deprecated/gthread.h:
 /usr/include/glib-2.0/glib/glib-autocleanups.h:
 include/bluez.h:
-internal_includes/bluez-internal.h:
+internal-includes/bluez-internal.h:
