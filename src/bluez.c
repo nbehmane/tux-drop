@@ -51,7 +51,9 @@ GVariant* bluez_adapter_properties_call(GDBusConnection *conn,
     g_assert_no_error(error);
 
     /******** CLEANUP ********/
-    g_variant_unref(response);
+    //g_variant_unref(response);
+    return response;
+
 }
 
 /**
