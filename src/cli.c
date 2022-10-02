@@ -28,6 +28,20 @@ static struct option long_options[] =
                 {0, 0, 0, 0}
         };
 
+
+/*** Main Loop Start ***/
+GDBusConnection *conn;
+GMainLoop *loop;
+// Loops
+
+static gboolean scan_timeout_signal(gpointer loop)
+{
+    g_main_loop_quit(loop);
+    return FALSE;
+}
+
+/*** Main Loop End ***/
+
 /**
  * @brief Runs the CLI. Meant to be in the main loop.
  *
@@ -35,10 +49,24 @@ static struct option long_options[] =
  * @param argv Argv from main.
  * @return
  */
-int cli_run(int argc, char **argv, GDBusConnection *conn)
+int cli_run(int argc, char **argv)
 {
     int c = 0;
     int time_seconds = 0;
+    /*** Check DBUS connection ***/
+    conn = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, NULL);
+    if (conn == NULL)
+    {
+        g_error("Not able to connect to system bus.\n");
+        return -1;
+    }
+    /*** Check DBUS connection end ***/
+
+    /*** Hashtable setup start ***/
+    GHashTable *devices = g_hash_table_new(g_str_hash, g_str_equal);
+    gpointer *tbl_pointer = (gpointer *)devices;
+    /*** Hashtable setup end ***/
+
     while (1)
     {
         int option_index = 0;
@@ -51,14 +79,79 @@ int cli_run(int argc, char **argv, GDBusConnection *conn)
                 usage();
                 break;
             case 's': // Scan Time
-                time_seconds = atoi(optarg);
-                g_print("Scan Time\n");
+                time_seconds = atoi(optarg); // Time to scan
+                guint adapter_props_change = 0;
+                guint adapter_iface_added = 0;
+                guint return_code = 0;
+                loop = g_main_loop_new(NULL, FALSE);
+
+                adapter_props_change = g_dbus_connection_signal_subscribe(
+                        conn,
+                        "org.bluez",
+                        "org.freedesktop.DBus.Properties",
+                        "PropertiesChange",
+                        NULL,
+                        "org.bluez.Adapter1",
+                        G_DBUS_SIGNAL_FLAGS_NONE,
+                        bluez_signal_adapter_changed,
+                        NULL,
+                        NULL
+                        );
+
+                adapter_iface_added = g_dbus_connection_signal_subscribe(
+                        conn,
+                        "org.bluez",
+                        "org.freedesktop.DBus.ObjectManager",
+                        "InterfacesAdded",
+                        NULL,
+                        NULL,
+                        G_DBUS_SIGNAL_FLAGS_NONE,
+                        bluez_iface_appeared,
+                        tbl_pointer,
+                        NULL
+                        );
+
+                return_code = bluez_adapter_set_property(
+                        conn,
+                        "Powered",
+                        g_variant_new("b", TRUE)
+                        );
+                if (return_code)
+                {
+                    g_print("Not able to enable adapter\n");
+                    goto scanfail;
+                }
+
+                return_code = bluez_adapter_call_method(conn, "StartDiscovery");
+                if (return_code)
+                {
+                    g_print("Not able to scan for new devices\n");
+                    goto scanfail;
+                }
+
+                g_timeout_add_seconds(time_seconds, scan_timeout_signal, loop);
+                g_main_loop_run(loop); // Blocking call (:
+
+                g_print("Stopping discovery...\n");
+                return_code = bluez_adapter_call_method(conn, "StopDiscovery");
+                if (return_code)
+                {
+                    g_print("Not able to stop scanning\n");
+                    goto scanfail;
+                }
+                g_usleep(100);
+
+            scanfail: // Why a goto? Well why not...
+                g_dbus_connection_signal_unsubscribe(conn, adapter_props_change);
+                g_dbus_connection_signal_unsubscribe(conn, adapter_iface_added);
+                g_main_loop_unref(loop);
                 break;
             case 'e': // Debug List devices
                 g_print("Debug List Devices\n");
                 break;
             case 'l': // List devices
                 g_print("List Devices\n");
+                bluez_scan_print_devices(devices);
                 break;
             case 'p': // Pairing
                 g_print("Pairing\n");

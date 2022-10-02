@@ -24,6 +24,5 @@
  * @param argv Argv from main.
  * @return
  */
-int cli_run(int argc, char **argv, GDBusConnection *conn);
-
+extern int cli_run(int argc, char **argv);
 #endif //TUXDROP_CLI_H
