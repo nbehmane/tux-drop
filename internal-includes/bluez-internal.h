@@ -58,4 +58,9 @@ void bluez_signal_connection_props_changed(GDBusConnection *sig,
                                            const gchar *signal_name,
                                            GVariant *parameters,
                                            gpointer user_data);
+/**
+ * @brief Prints out devices that were scanned using -s.
+ * @param device_table
+ */
+char* bluez_choose_device(GHashTable *device_table);
 #endif //TUXDROP_BLUEZ_INTERNAL_H

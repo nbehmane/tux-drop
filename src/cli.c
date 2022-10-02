@@ -164,6 +164,8 @@ int cli_run(int argc, char **argv)
                 guint pairing_device_props_changed = 0;
                 int pairing_timeout = 10;
                 // TODO: ADD CODE TO SELECT DEVICE AND SET IT TO PATH
+                device_path = bluez_choose_device(devices);
+
                 pairing_device_props_changed = g_dbus_connection_signal_subscribe(
                         conn,
                        "org.bluez",
@@ -202,10 +204,10 @@ int cli_run(int argc, char **argv)
             case 'c': // Connecting
                 g_print("Connecting\n");
                 // Print the devices that we can connect too.
-                bluez_scan_print_devices(devices);
                 int connection_device_props_changed = 0;
                 int connection_timeout = 10;
                 // TODO: ADD CODE TO SELECT DEVICE AND SET IT TO PATH
+                device_path = bluez_choose_device(devices);
 
                 connection_device_props_changed = g_dbus_connection_signal_subscribe(
                         conn,

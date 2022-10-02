@@ -439,3 +439,19 @@ void bluez_signal_connection_props_changed(GDBusConnection *sig,
     }
     return;
 }
+
+/**
+ * @brief Prints out devices that were scanned using -s.
+ * @param device_table
+ */
+char* bluez_choose_device(GHashTable *device_table)
+{
+    GHashTableIter iter;
+    gpointer key, value;
+    /** TODO: Check that device_table is of GHashTable type. **/
+
+    g_hash_table_iter_init(&iter, device_table);
+    while (g_hash_table_iter_next(&iter, &key, &value))
+        g_print("Scanned Device: %s\n", (gchar *)key);
+    return "\0";
+}
