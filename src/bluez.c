@@ -127,17 +127,18 @@ GVariant* bluez_adapter_properties_call(GDBusConnection *conn,
      * 3. Set
      */
 
-    response =  g_dbus_connection_call_sync(conn,
-                                            BLUEZ_ORG,
-                                            BLUEZ_ADAPTER_OBJECT, // Will be replaced with obj_path
-                                            "org.freedesktop.DBus.Properties",
-                                            method,
-                                            g_variant_new("(s)", BLUEZ_ADAPTER_IFACE),
-                                            G_VARIANT_TYPE("(a{sv})"),
-                                            G_DBUS_CALL_FLAGS_NONE,
-                                            -1,
-                                            NULL,
-                                            &error);
+    response =  g_dbus_connection_call_sync(
+            conn,
+            BLUEZ_ORG,
+            BLUEZ_ADAPTER_OBJECT, // Will be replaced with obj_path
+            "org.freedesktop.DBus.Properties",
+            method,
+            g_variant_new("(s)", BLUEZ_ADAPTER_IFACE),
+            G_VARIANT_TYPE("(a{sv})"),
+            G_DBUS_CALL_FLAGS_NONE,
+            -1,
+            NULL,
+            &error);
 
     // Check if there was an error.
     g_assert_no_error(error);
