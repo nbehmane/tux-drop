@@ -1,2 +1,2 @@
-obj/bluez.o: src/bluez.c internal-includes/bluez-internal.h
-internal-includes/bluez-internal.h:
+obj/bluez.o: src/bluez.c include/bluez.h
+include/bluez.h:

@@ -4,7 +4,7 @@
 * @brief This is a helper library that wraps up some bluez stuff.
 */
 /** Includes **/
-#include "bluez-internal.h"
+#include "bluez.h"
 
 /** Macros **/
 #define BLUEZ_ORG "org.bluez" /** Bluez Org **/

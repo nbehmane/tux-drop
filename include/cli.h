@@ -15,6 +15,8 @@
 #include <glib-2.0/glib.h>
 #include <glib-2.0/gio/gio.h>
 
+#include "bluez.h"
+
 /**
  * @brief Runs the CLI. Meant to be in the main loop.
  *

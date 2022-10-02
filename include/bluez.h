@@ -4,7 +4,8 @@
 
 #ifndef TUXDROP_BLUEZ_H
 #define TUXDROP_BLUEZ_H
-#include "bluez-internal.h"
+#include <glib-2.0/glib.h>
+#include <glib-2.0/gio/gio.h>
 
 #define BLUEZ_ORG "org.bluez" /** Bluez Org **/
 #define BLUEZ_ADAPTER_IFACE "org.bluez.Adapter1"

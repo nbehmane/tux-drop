@@ -1,4 +1,4 @@
-#include "cli-internal.h"
+#include "cli.h"
 
 void usage()
 {
