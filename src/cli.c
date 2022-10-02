@@ -164,28 +164,30 @@ int cli_run(int argc, char **argv)
                 guint pairing_device_props_changed = 0;
                 int pairing_timeout = 10;
                 // TODO: ADD CODE TO SELECT DEVICE AND SET IT TO PATH
-                pairing_device_props_changed = g_dbus_connection_signal_subscribe(conn,
-                                                                  "org.bluez",
-                                                                  "org.freedesktop.DBus.Properties",
-                                                                  "PropertiesChanged",
-                                                                  device_path,
-                                                                  "org.bluez.Device1",
-                                                                  G_DBUS_SIGNAL_FLAGS_NONE,
-                                                                  bluez_signal_pairing_props_changed,
-                                                                  NULL,
-                                                                  NULL);
+                pairing_device_props_changed = g_dbus_connection_signal_subscribe(
+                        conn,
+                       "org.bluez",
+                       "org.freedesktop.DBus.Properties",
+                       "PropertiesChanged",
+                       device_path,
+                       "org.bluez.Device1",
+                       G_DBUS_SIGNAL_FLAGS_NONE,
+                       bluez_signal_pairing_props_changed,
+                       NULL,
+                       NULL);
 
-                g_dbus_connection_call_sync(conn,
-                                            BLUEZ_ORG,
-                                            device_path,
-                                            "org.bluez.Device1",
-                                            "Pair",
-                                            NULL,
-                                            NULL,
-                                            G_DBUS_CALL_FLAGS_NONE,
-                                            -1,
-                                            NULL,
-                                            &error);
+                g_dbus_connection_call_sync(
+                        conn,
+                       BLUEZ_ORG,
+                       device_path,
+                       "org.bluez.Device1",
+                       "Pair",
+                       NULL,
+                       NULL,
+                       G_DBUS_CALL_FLAGS_NONE,
+                       -1,
+                       NULL,
+                       &error);
                 if (error != NULL)
                     g_error(error->message);
 
@@ -205,27 +207,29 @@ int cli_run(int argc, char **argv)
                 int connection_timeout = 10;
                 // TODO: ADD CODE TO SELECT DEVICE AND SET IT TO PATH
 
-                connection_device_props_changed = g_dbus_connection_signal_subscribe(conn,
-                                                                  "org.bluez",
-                                                                  "org.freedesktop.DBus.Properties",
-                                                                  "PropertiesChanged",
-                                                                  device_path,
-                                                                  "org.bluez.Device1",
-                                                                  G_DBUS_SIGNAL_FLAGS_NONE,
-                                                                  bluez_signal_connection_props_changed,
-                                                                  NULL,
-                                                                  NULL);
-                g_dbus_connection_call_sync(conn,
-                                            BLUEZ_ORG,
-                                            device_path,
-                                            "org.bluez.Device1",
-                                            "Connect",
-                                            NULL,
-                                            NULL,
-                                            G_DBUS_CALL_FLAGS_NONE,
-                                            -1,
-                                            NULL,
-                                            &error);
+                connection_device_props_changed = g_dbus_connection_signal_subscribe(
+                        conn,
+                       "org.bluez",
+                       "org.freedesktop.DBus.Properties",
+                       "PropertiesChanged",
+                       device_path,
+                       "org.bluez.Device1",
+                       G_DBUS_SIGNAL_FLAGS_NONE,
+                       bluez_signal_connection_props_changed,
+                       NULL,
+                       NULL);
+                g_dbus_connection_call_sync(
+                        conn,
+                       BLUEZ_ORG,
+                       device_path,
+                       "org.bluez.Device1",
+                       "Connect",
+                       NULL,
+                       NULL,
+                       G_DBUS_CALL_FLAGS_NONE,
+                       -1,
+                       NULL,
+                       &error);
 
                 if (error != NULL)
                     g_error(error->message);
