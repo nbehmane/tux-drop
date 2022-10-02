@@ -43,4 +43,19 @@ gboolean bluez_scan_timeout_signal(gpointer loop);
 int bluez_register_autopair_agent(GDBusConnection *conn);
 int bluez_agent_call_method(const gchar *method, GVariant *param, GDBusConnection *conn);
 
+void bluez_signal_pairing_props_changed(GDBusConnection *sig,
+                                        const gchar *sender_name,
+                                        const gchar *object_path,
+                                        const gchar *interface,
+                                        const gchar *signal_name,
+                                        GVariant *parameters,
+                                        gpointer user_data);
+
+void bluez_signal_connection_props_changed(GDBusConnection *sig,
+                                           const gchar *sender_name,
+                                           const gchar *object_path,
+                                           const gchar *interface,
+                                           const gchar *signal_name,
+                                           GVariant *parameters,
+                                           gpointer user_data);
 #endif //TUXDROP_BLUEZ_INTERNAL_H

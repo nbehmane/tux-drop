@@ -355,3 +355,87 @@ int bluez_agent_call_method(const gchar *method, GVariant *param, GDBusConnectio
     g_variant_unref(result);
     return 0;
 }
+
+void bluez_signal_pairing_props_changed(GDBusConnection *sig,
+                          const gchar *sender_name,
+                          const gchar *object_path,
+                          const gchar *interface,
+                          const gchar *signal_name,
+                          GVariant *parameters,
+                          gpointer user_data)
+{
+    (void)sig;
+    (void)sender_name;
+    (void)object_path;
+    (void)interface;
+    (void)signal_name;
+
+    GHashTable *tbl = (GHashTable *)user_data;
+    GVariantIter *interfaces;
+    const char *object;
+    const gchar *interface_name;
+    GVariant *properties;
+
+    g_variant_get(parameters, "(&oa{sa{sv}})", &object, &interfaces);
+    while(g_variant_iter_next(interfaces, "{&s@a{sv}}", &interface_name, &properties)) {
+        if(g_strstr_len(g_ascii_strdown(interface_name, -1), -1, "device")) {
+            g_print("[ %s ]\n", object);
+            if (!g_hash_table_contains(tbl, (gconstpointer) object))
+            {
+                g_print("[ adding %s ]\n", object);
+                g_hash_table_add(tbl, (gpointer)object);
+            }
+            const gchar *property_name;
+            GVariantIter i;
+            GVariant *prop_val;
+            g_variant_iter_init(&i, properties);
+            while(g_variant_iter_next(&i, "{&sv}", &property_name, &prop_val))
+                bluez_property_value(property_name, prop_val);
+            g_variant_unref(prop_val);
+        }
+        g_variant_unref(properties);
+    }
+    return;
+}
+
+void bluez_signal_connection_props_changed(GDBusConnection *sig,
+                                        const gchar *sender_name,
+                                        const gchar *object_path,
+                                        const gchar *interface,
+                                        const gchar *signal_name,
+                                        GVariant *parameters,
+                                        gpointer user_data)
+{
+    (void)sig;
+    (void)sender_name;
+    (void)object_path;
+    (void)interface;
+    (void)signal_name;
+
+    GHashTable *tbl = (GHashTable *)user_data;
+    GVariantIter *interfaces;
+    const char *object;
+    const gchar *interface_name;
+    GVariant *properties;
+
+    g_variant_get(parameters, "(&oa{sa{sv}})", &object, &interfaces);
+    while(g_variant_iter_next(interfaces, "{&s@a{sv}}", &interface_name, &properties)) {
+        if(g_strstr_len(g_ascii_strdown(interface_name, -1), -1, "device")) {
+            g_print("[ %s ]\n", object);
+            if (!g_hash_table_contains(tbl, (gconstpointer) object))
+            {
+                g_print("[ adding %s ]\n", object);
+                g_hash_table_add(tbl, (gpointer)object);
+            }
+            const gchar *property_name;
+            GVariantIter i;
+            GVariant *prop_val;
+            g_variant_iter_init(&i, properties);
+            while(g_variant_iter_next(&i, "{&sv}", &property_name, &prop_val))
+                bluez_property_value(property_name, prop_val);
+            g_variant_unref(prop_val);
+        }
+        g_variant_unref(properties);
+    }
+    return;
+}

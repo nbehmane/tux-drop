@@ -48,6 +48,8 @@ int cli_run(int argc, char **argv)
     int c = 0;
     int time_seconds = 0;
     int return_code_cli = 0;
+    GError *error = NULL;
+    char *device_path = '\0'; // Need to get the object path somehow
     /*** Check DBUS connection ***/
     conn = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, NULL);
     if (conn == NULL)
@@ -159,19 +161,25 @@ int cli_run(int argc, char **argv)
                 break;
             case 'p': // Pairing
                 g_print("Pairing\n");
-                break;
-            case 'c': // Connecting
-                g_print("Connecting\n");
-                GError *error = NULL;
-                // Print the devices that we can connect too.
-                bluez_scan_print_devices(devices);
+                guint pairing_device_props_changed = 0;
+                int pairing_timeout = 10;
                 // TODO: ADD CODE TO SELECT DEVICE AND SET IT TO PATH
-                char *path = '\0'; // Need to get the object path somehow
+                pairing_device_props_changed = g_dbus_connection_signal_subscribe(conn,
+                                                                  "org.bluez",
+                                                                  "org.freedesktop.DBus.Properties",
+                                                                  "PropertiesChanged",
+                                                                  device_path,
+                                                                  "org.bluez.Device1",
+                                                                  G_DBUS_SIGNAL_FLAGS_NONE,
+                                                                  bluez_signal_pairing_props_changed,
+                                                                  NULL,
+                                                                  NULL);
+
                 g_dbus_connection_call_sync(conn,
                                             BLUEZ_ORG,
-                                            path,
+                                            device_path,
                                             "org.bluez.Device1",
-                                            "Connect",
+                                            "Pair",
                                             NULL,
                                             NULL,
                                             G_DBUS_CALL_FLAGS_NONE,
@@ -180,7 +188,55 @@ int cli_run(int argc, char **argv)
                                             &error);
                 if (error != NULL)
                     g_error(error->message);
-                g_print("Connected to %s\n", path);
+
+                loop = g_main_loop_new(NULL, FALSE);
+                g_timeout_add_seconds(pairing_timeout, bluez_scan_timeout_signal, loop);
+                g_main_loop_run(loop); // Blocking call (:
+
+                g_dbus_connection_signal_unsubscribe(conn, pairing_device_props_changed);
+                g_main_loop_unref(loop);
+                g_print("Paired to %s\n", device_path);
+                break;
+            case 'c': // Connecting
+                g_print("Connecting\n");
+                // Print the devices that we can connect too.
+                bluez_scan_print_devices(devices);
+                int connection_device_props_changed = 0;
+                int connection_timeout = 10;
+                // TODO: ADD CODE TO SELECT DEVICE AND SET IT TO PATH
+
+                connection_device_props_changed = g_dbus_connection_signal_subscribe(conn,
+                                                                  "org.bluez",
+                                                                  "org.freedesktop.DBus.Properties",
+                                                                  "PropertiesChanged",
+                                                                  device_path,
+                                                                  "org.bluez.Device1",
+                                                                  G_DBUS_SIGNAL_FLAGS_NONE,
+                                                                  bluez_signal_connection_props_changed,
+                                                                  NULL,
+                                                                  NULL);
+                g_dbus_connection_call_sync(conn,
+                                            BLUEZ_ORG,
+                                            device_path,
+                                            "org.bluez.Device1",
+                                            "Connect",
+                                            NULL,
+                                            NULL,
+                                            G_DBUS_CALL_FLAGS_NONE,
+                                            -1,
+                                            NULL,
+                                            &error);
+
+                if (error != NULL)
+                    g_error(error->message);
+
+                loop = g_main_loop_new(NULL, FALSE);
+                g_timeout_add_seconds(connection_timeout, bluez_scan_timeout_signal, loop);
+                g_main_loop_run(loop); // Blocking call (:
+
+                g_dbus_connection_signal_unsubscribe(conn, connection_device_props_changed);
+                g_main_loop_unref(loop);
+                g_print("Connected to %s\n", device_path);
                 break;
             case 'd': // Disconnect
                 g_print("Disconnect\n");
