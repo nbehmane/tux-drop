@@ -6,6 +6,15 @@
 #define TUXDROP_BLUEZ_H
 #include "bluez-internal.h"
 
+#define BLUEZ_ORG "org.bluez" /** Bluez Org **/
+#define BLUEZ_ADAPTER_IFACE "org.bluez.Adapter1"
+#define BLUEZ_ADAPTER_OBJECT "/org/bluez/hci0"
+#define FREE_PROPERTIES "org.freedesktop.DBus.Properties"
+#define FREE_OBJECT_MANAGER "org.freedesktop.DBus.ObjectManager"
+#define AGENT_PATH "/org/bluez/AutoPinAgent"
+#define MAX_IFACES 10
+#define MAX_PROPS  20
+
 void bluez_iface_appeared(GDBusConnection *sig,
                           const gchar *sender_name,
                           const gchar *object_path,
@@ -36,5 +45,9 @@ void bluez_property_value(const gchar *key, GVariant *value);
 int bluez_adapter_call_method(GDBusConnection *conn, const char *method);
 void bluez_scan_print_devices(GHashTable *device_table);
 void bluez_scan_remove_devices(GHashTable *device_table);
+
+gboolean bluez_scan_timeout_signal(gpointer loop);
+int bluez_register_autopair_agent(GDBusConnection *conn);
+int bluez_agent_call_method(const gchar *method, GVariant *param, GDBusConnection *conn);
 
 #endif //TUXDROP_BLUEZ_H

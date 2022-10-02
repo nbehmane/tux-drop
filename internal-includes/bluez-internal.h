@@ -39,5 +39,8 @@ void bluez_property_value(const gchar *key, GVariant *value);
 int bluez_adapter_call_method(GDBusConnection *conn, const char *method);
 void bluez_scan_print_devices(GHashTable *device_table);
 void bluez_scan_remove_devices(GHashTable *device_table);
+gboolean bluez_scan_timeout_signal(gpointer loop);
+int bluez_register_autopair_agent(GDBusConnection *conn);
+int bluez_agent_call_method(const gchar *method, GVariant *param, GDBusConnection *conn);
 
 #endif //TUXDROP_BLUEZ_INTERNAL_H

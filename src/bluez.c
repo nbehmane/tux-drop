@@ -294,3 +294,64 @@ void bluez_scan_remove_devices(GHashTable *device_table)
     /** TODO: Remove each entry key manually. This is the suggested way of doing it. **/
     g_hash_table_unref(device_table);
 }
+
+gboolean bluez_scan_timeout_signal(gpointer loop)
+{
+    g_main_loop_quit(loop);
+    return FALSE;
+}
+
+/**
+ * @brief Registers the autopair agent.
+ *
+ * @param conn Connection handle to dbus.
+ */
+int bluez_register_autopair_agent(GDBusConnection *conn)
+{
+    int rc;
+
+    rc = bluez_agent_call_method("RegisterAgent", g_variant_new("(os)", AGENT_PATH, "NoInputNoOutput"), conn);
+    if(rc)
+        return 1;
+
+    rc = bluez_agent_call_method("RequestDefaultAgent", g_variant_new("(o)", AGENT_PATH), conn);
+    if(rc) {
+        bluez_agent_call_method("UnregisterAgent", g_variant_new("(o)", AGENT_PATH), conn);
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Calls a given method with parameters to the agent manager.
+ *
+ * @param method The method to be called.
+ * @param param The parameters to be passed to the method.
+ * @param conn Connection handle to dbus.
+ */
+int bluez_agent_call_method(const gchar *method, GVariant *param, GDBusConnection *conn)
+{
+    GVariant *result;
+    GError *error = NULL;
+
+    result = g_dbus_connection_call_sync(conn,
+                                         "org.bluez",
+                                         "/org/bluez",
+                                         "org.bluez.AgentManager1",
+                                         method,
+                                         param,
+                                         NULL,
+                                         G_DBUS_CALL_FLAGS_NONE,
+                                         -1,
+                                         NULL,
+                                         &error);
+    if(error != NULL)
+    {
+        g_print("Register %s: %s\n", AGENT_PATH, error->message);
+        return 1;
+    }
+
+    g_variant_unref(result);
+    return 0;
+}

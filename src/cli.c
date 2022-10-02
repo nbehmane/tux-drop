@@ -34,12 +34,6 @@ GDBusConnection *conn;
 GMainLoop *loop;
 // Loops
 
-static gboolean scan_timeout_signal(gpointer loop)
-{
-    g_main_loop_quit(loop);
-    return FALSE;
-}
-
 /*** Main Loop End ***/
 
 /**
@@ -53,6 +47,7 @@ int cli_run(int argc, char **argv)
 {
     int c = 0;
     int time_seconds = 0;
+    int return_code_cli = 0;
     /*** Check DBUS connection ***/
     conn = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, NULL);
     if (conn == NULL)
@@ -66,6 +61,15 @@ int cli_run(int argc, char **argv)
     GHashTable *devices = g_hash_table_new(g_str_hash, g_str_equal);
     gpointer *tbl_pointer = (gpointer *)devices;
     /*** Hashtable setup end ***/
+    // Make the adapter pairable
+    bluez_adapter_set_property(conn, "Pairable", g_variant_new_boolean(1));
+    return_code_cli = bluez_register_autopair_agent(conn);
+    if (return_code_cli)
+    {
+        g_print("Could not register autopair agent.\n");
+        exit(EXIT_FAILURE);
+    }
+
 
     while (1)
     {
@@ -78,7 +82,7 @@ int cli_run(int argc, char **argv)
             case 'h':
                 usage();
                 break;
-            case 's': // Scan Time
+            case 's': // Scan Time - DONE
                 time_seconds = atoi(optarg); // Time to scan
                 guint adapter_props_change = 0;
                 guint adapter_iface_added = 0;
@@ -129,7 +133,7 @@ int cli_run(int argc, char **argv)
                     goto scanfail;
                 }
 
-                g_timeout_add_seconds(time_seconds, scan_timeout_signal, loop);
+                g_timeout_add_seconds(time_seconds, bluez_scan_timeout_signal, loop);
                 g_main_loop_run(loop); // Blocking call (:
 
                 g_print("Stopping discovery...\n");
@@ -149,7 +153,7 @@ int cli_run(int argc, char **argv)
             case 'e': // Debug List devices
                 g_print("Debug List Devices\n");
                 break;
-            case 'l': // List devices
+            case 'l': // List devices - DONE
                 g_print("List Devices\n");
                 bluez_scan_print_devices(devices);
                 break;
@@ -158,6 +162,25 @@ int cli_run(int argc, char **argv)
                 break;
             case 'c': // Connecting
                 g_print("Connecting\n");
+                GError *error = NULL;
+                // Print the devices that we can connect too.
+                bluez_scan_print_devices(devices);
+                // TODO: ADD CODE TO SELECT DEVICE AND SET IT TO PATH
+                char *path = '\0'; // Need to get the object path somehow
+                g_dbus_connection_call_sync(conn,
+                                            BLUEZ_ORG,
+                                            path,
+                                            "org.bluez.Device1",
+                                            "Connect",
+                                            NULL,
+                                            NULL,
+                                            G_DBUS_CALL_FLAGS_NONE,
+                                            -1,
+                                            NULL,
+                                            &error);
+                if (error != NULL)
+                    g_error(error->message);
+                g_print("Connected to %s\n", path);
                 break;
             case 'd': // Disconnect
                 g_print("Disconnect\n");
@@ -166,11 +189,11 @@ int cli_run(int argc, char **argv)
                 g_print("Remove Device\n");
                 break;
             case 'q': // Quit
-                return -1;
+                exit(EXIT_SUCCESS);
             case 'S': //Set
                 g_print("Setting device properties\n");
                 break;
-            case 'G': //Get
+            case 'G': //Get - DONE
                 g_print("Device Properties\n");
 
                 GVariant *property_container = bluez_adapter_properties_call(conn, NULL, "GetAll");
@@ -184,4 +207,5 @@ int cli_run(int argc, char **argv)
                 break;
         }
     }
+    return 0;
 }
