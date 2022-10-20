@@ -31,6 +31,7 @@ static struct option long_options[] =
 
 /*** Main Loop Start ***/
 GDBusConnection *conn;
+GDBusConnection *session_conn;
 GMainLoop *loop;
 // Loops
 
@@ -52,9 +53,15 @@ int cli_run(int argc, char **argv)
     char *device_path = '\0'; // Need to get the object path somehow
     /*** Check DBUS connection ***/
     conn = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, NULL);
+    session_conn = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
     if (conn == NULL)
     {
         g_error("Not able to connect to system bus.\n");
+        return -1;
+    }
+    if (session_conn == NULL)
+    {
+        g_error("Not able to connect to session bus.\n");
         return -1;
     }
     /*** Check DBUS connection end ***/
@@ -154,6 +161,7 @@ int cli_run(int argc, char **argv)
                 break;
             case 'e': // Debug List devices
                 g_print("Debug List Devices\n");
+                device_path = bluez_choose_device(devices);
                 break;
             case 'l': // List devices - DONE
                 g_print("List Devices\n");
@@ -190,6 +198,7 @@ int cli_run(int argc, char **argv)
                        -1,
                        NULL,
                        &error);
+
                 if (error != NULL)
                     g_error(error->message);
 
@@ -206,7 +215,7 @@ int cli_run(int argc, char **argv)
                 // Print the devices that we can connect too.
                 int connection_device_props_changed = 0;
                 int connection_timeout = 10;
-                // TODO: ADD CODE TO SELECT DEVICE AND SET IT TO PATH
+
                 device_path = bluez_choose_device(devices);
 
                 connection_device_props_changed = g_dbus_connection_signal_subscribe(
@@ -218,27 +227,96 @@ int cli_run(int argc, char **argv)
                        "org.bluez.Device1",
                        G_DBUS_SIGNAL_FLAGS_NONE,
                        bluez_signal_connection_props_changed,
-                       NULL,
+                       conn,
                        NULL);
+
+
                 g_dbus_connection_call_sync(
                         conn,
-                       BLUEZ_ORG,
-                       device_path,
-                       "org.bluez.Device1",
-                       "Connect",
-                       NULL,
-                       NULL,
-                       G_DBUS_CALL_FLAGS_NONE,
-                       -1,
-                       NULL,
-                       &error);
+                        BLUEZ_ORG,
+                        device_path,
+                        "org.bluez.Device1",
+                        "Connect",
+                        NULL,
+                        NULL,
+                        G_DBUS_CALL_FLAGS_NONE,
+                        -1,
+                        NULL,
+                        &error);
 
                 if (error != NULL)
                     g_error(error->message);
 
+                /*
+                g_dbus_connection_call_sync(
+                         conn,
+                        "org.bluez.obex",
+                        "/org/bluez/obex",
+                        "org.bluez.obex.Client1",
+                        "CreateSession",
+                        g_variant_new("(s{sv})", "/org/bluez/dev_5C_87_30_66_F4_35", "Target", g_variant_new("s", "ftp")),
+                        G_VARIANT_TYPE("(o)"),
+                        G_DBUS_CALL_FLAGS_NONE,
+                        -1,
+                        NULL,
+                        &error);
+
+                if (error != NULL)
+                    g_error(error->message);
+                    */
+                /*
+                GDBusMessage *call = g_dbus_message_new_method_call(
+                        "org.bluez.obex",
+                        "/org/bluez/obex",
+                        "org.bluez.obex.Client1",
+                        "CreateSession");
+                g_dbus_message_set_body(call, g_variant_new("(s{sv})", "/org/bluez/dev_5C_87_30_66_F4_35", "Target", g_variant_new("s", "ftp")));
+                g_print("%s\n", g_dbus_message_print(call, 1));
+
+                GDBusMessage *reply = g_dbus_connection_send_message_with_reply_sync(
+                        conn,
+                        call,
+                        G_DBUS_SEND_MESSAGE_FLAGS_PRESERVE_SERIAL,
+                        -1,
+                        NULL,
+                        NULL,
+                        &error
+                        );
+                        */
+
+                GDBusProxy *proxy = g_dbus_proxy_new_sync(
+                        session_conn,
+                        G_DBUS_PROXY_FLAGS_NONE,
+                        NULL,
+                        "org.bluez.obex",
+                        "/org/bluez/obex",
+                        "org.bluez.obex.AgentManager1",
+                        NULL,
+                        &error
+                        );
+
+                if (error != NULL)
+                    g_error(error->message);
+
+                g_dbus_proxy_call_sync(
+                        proxy,
+                        "CreateSession",
+                        g_variant_new("(s{sv})", "/org/bluez/dev_5C_87_30_66_F4_35", "Target", g_variant_new("s", "ftp")),
+                        G_DBUS_CALL_FLAGS_NONE,
+                        -1,
+                        NULL,
+                        &error
+                        );
+                while (1);
+
+                if (error != NULL)
+                    g_error(error->message);
+
+                g_print("HIT MAIN LOOP\n");
                 loop = g_main_loop_new(NULL, FALSE);
-                g_timeout_add_seconds(connection_timeout, bluez_scan_timeout_signal, loop);
+                //g_timeout_add_seconds(connection_timeout, bluez_scan_timeout_signal, loop);
                 g_main_loop_run(loop); // Blocking call (:
+
 
                 g_dbus_connection_signal_unsubscribe(conn, connection_device_props_changed);
                 g_main_loop_unref(loop);
@@ -263,6 +341,7 @@ int cli_run(int argc, char **argv)
                 {
                     GVariant * properties = g_variant_get_child_value(property_container, 0);
                     g_print("%s\n", g_variant_print_string(properties, NULL, 0)->str);
+                    g_variant_unref(properties);
                 }
                 break;
             default:

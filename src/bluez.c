@@ -5,6 +5,7 @@
 */
 /** Includes **/
 #include "bluez.h"
+#include <stdio.h>
 
 /** Macros **/
 #define BLUEZ_ORG "org.bluez" /** Bluez Org **/
@@ -279,11 +280,16 @@ void bluez_scan_print_devices(GHashTable *device_table)
 {
     GHashTableIter iter;
     gpointer key, value;
+    int i = 0;
     /** TODO: Check that device_table is of GHashTable type. **/
 
     g_hash_table_iter_init(&iter, device_table);
     while (g_hash_table_iter_next(&iter, &key, &value))
-        g_print("Scanned Device: %s\n", (gchar *)key);
+    {
+        g_print("%d: %s\n", i, (gchar *) key);
+        i++;
+    }
+
 }
 
 /**
@@ -407,37 +413,96 @@ void bluez_signal_connection_props_changed(GDBusConnection *sig,
                                         GVariant *parameters,
                                         gpointer user_data)
 {
-    (void)sig;
-    (void)sender_name;
-    (void)object_path;
-    (void)interface;
-    (void)signal_name;
+    // Debugging statement
+    // 4D_F9_30_21_CD_7A
+    //g_print("%s\n%s\n%s\n%s\n", sender_name, object_path, interface, signal_name);
 
-    GHashTable *tbl = (GHashTable *)user_data;
-    GVariantIter *interfaces;
-    const char *object;
-    const gchar *interface_name;
-    GVariant *properties;
+    const gchar *signature = g_variant_get_type_string(parameters);
+    GVariantIter *properties = NULL;
+    GVariantIter *unknown = NULL;
+    const char *iface;
+    const char *key;
+    GVariant *value = NULL;
+    GError *error;
 
-    g_variant_get(parameters, "(&oa{sa{sv}})", &object, &interfaces);
-    while(g_variant_iter_next(interfaces, "{&s@a{sv}}", &interface_name, &properties)) {
-        if(g_strstr_len(g_ascii_strdown(interface_name, -1), -1, "device")) {
-            g_print("[ %s ]\n", object);
-            if (!g_hash_table_contains(tbl, (gconstpointer) object))
-            {
-                g_print("[ adding %s ]\n", object);
-                g_hash_table_add(tbl, (gpointer)object);
-            }
-            const gchar *property_name;
-            GVariantIter i;
-            GVariant *prop_val;
-            g_variant_iter_init(&i, properties);
-            while(g_variant_iter_next(&i, "{&sv}", &property_name, &prop_val))
-                bluez_property_value(property_name, prop_val);
-            g_variant_unref(prop_val);
-        }
-        g_variant_unref(properties);
+    if(g_strcmp0(signature, "(sa{sv}as)") != 0) {
+        g_print("Invalid signature for %s: %s != %s", signal, signature, "(sa{sv}as)");
+        goto done;
     }
+
+    g_variant_get(parameters, "(&sa{sv}as)", &iface, &properties, &unknown);
+    while(g_variant_iter_next(properties, "{&sv}", &key, &value))
+    {
+        //g_print("KEY: %s\n", key);
+        if(!g_strcmp0(key, "Connected"))
+        {
+            if(!g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN))
+            {
+                g_print("Invalid argument type for %s: %s != %s", key,
+                        g_variant_get_type_string(value), "b");
+                goto done;
+            }
+            g_print("Connection Status: %s\n", g_variant_get_boolean(value) ? "Connected" : "Disconnected");
+            if (g_variant_get_boolean(value) == 0)
+            {
+                g_print("Disconnecting and quitting...\n");
+                exit(EXIT_SUCCESS);
+            }
+            else
+            {
+                // This is where we will register the OBEX service.
+                g_print("Registering OBEX protocol.\n");
+                g_print("%d\n", g_dbus_connection_is_closed(user_data));
+
+                GVariant *response = g_dbus_connection_call_sync(
+                        user_data,
+                        "org.bluez.obex",
+                        "/org/bluez/obex",
+                        "org.bluez.obex.Client1",
+                        "CreateSession",
+                        g_variant_new("(s{sv})", "5C:87:30:66:F4:35", "Target", g_variant_new("s", "ftp")),
+                        G_VARIANT_TYPE("(o)"),
+                        G_DBUS_CALL_FLAGS_NONE,
+                        -1,
+                        NULL,
+                        &error);
+
+                if (response == NULL)
+                    g_print("FATAL Error\n");
+
+                if (error != NULL)
+                    g_error(error->message);
+            }
+
+        }
+        if(!g_strcmp0(key, "Alias"))
+        {
+            if(!g_variant_is_of_type(value, G_VARIANT_TYPE_STRING))
+            {
+                g_print("Invalid argument type for %s: %s != %s", key,
+                        g_variant_get_type_string(value), "s");
+                goto done;
+            }
+            g_print("ALIAS: %s\n", g_variant_get_string(value, NULL));
+        }
+
+        if(!g_strcmp0(key, "Modalias"))
+        {
+            if(!g_variant_is_of_type(value, G_VARIANT_TYPE_STRING))
+            {
+                g_print("Invalid argument type for %s: %s != %s", key,
+                        g_variant_get_type_string(value), "s");
+                goto done;
+            }
+            g_print("Modalias: %s\n", g_variant_get_string(value, NULL));
+        }
+    }
+    done:
+    if(properties != NULL)
+        g_variant_iter_free(properties);
+    if(value != NULL)
+        g_variant_unref(value);
+
     return;
 }
 
@@ -449,10 +514,25 @@ char* bluez_choose_device(GHashTable *device_table)
 {
     GHashTableIter iter;
     gpointer key, value;
+    int i = 0;
     /** TODO: Check that device_table is of GHashTable type. **/
+
+    g_print("Choose device by inputting device number: ");
+    int device_chosen = 0;
+    scanf("%d", &device_chosen);
+
 
     g_hash_table_iter_init(&iter, device_table);
     while (g_hash_table_iter_next(&iter, &key, &value))
-        g_print("Scanned Device: %s\n", (gchar *)key);
-    return "\0";
+    {
+        if (i == device_chosen)
+        {
+            g_print("%d: %s\n", i, (gchar *) key);
+            return key;
+        }
+        i += 1;
+    }
+    char *str = malloc(sizeof(char) * 40);
+    str = "/org/bluez/hci0/dev_5C_87_30_66_F4_35";
+    return str;
 }
