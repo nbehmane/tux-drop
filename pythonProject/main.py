@@ -1,4 +1,3 @@
-# This is a sample Python script.
 import sys
 
 import dbus
@@ -13,6 +12,7 @@ import bluetooth_constants
 import scan
 import connect
 import pair
+import advertise
 import argument_parser
 sys.path.insert(0, '.')
 
@@ -23,6 +23,7 @@ def main():
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         bus = dbus.SystemBus()
         scan.scan_devices(bus, args.scan * 1000)
+        scan.scan_get_known_devices(bus)
     if (args.list == True):
         print("Printing known devices")
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
@@ -61,7 +62,7 @@ def main():
     if (args.pair == True):
         pair.pair()
     if (args.advertise == True):
-        pass
+        advertise.advertise_start();
 
 
 if __name__ == '__main__':

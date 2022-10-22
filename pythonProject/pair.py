@@ -85,7 +85,6 @@ class Agent(dbus.service.Object):
         print("RequestConfirmation (%s, %06d)" % (device, passkey))
         confirm = ask("Confirm passkey (yes/no): ")
         if (confirm == "yes"):
-            set_trusted(device)
             return
         raise Rejected("Passkey doesn't match")
 
@@ -103,7 +102,9 @@ class Agent(dbus.service.Object):
 
 
 def pair_reply():
-    print("Device paired")
+    print(f"Device paired {dev_path}")
+    if (dev_path == None):
+        mainloop.quit()
     set_trusted(dev_path)
     dev_connect(dev_path)
     mainloop.quit()

@@ -25,7 +25,6 @@ def connect(bus, device_path, is_path):
     except Exception as e:
         print("Connecting failed")
         print(e.get_dbus_name())
-        print(e.get_debus_message())
     else:
         print("Connection successful")
         return bluetooth_constants.RESULT_OK

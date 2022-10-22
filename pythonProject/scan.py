@@ -123,9 +123,6 @@ def scan_timeout_signal():
     bus.remove_signal_receiver(scan_interfaces_added_signal, "InterfacesAdded")
     bus.remove_signal_receiver(scan_interfaces_removed_signal, "InterfacesRemoved")
     bus.remove_signal_receiver(scan_properties_changed_signal, "PropertiesChanged")
-    print('Scanned devices')
-    scan_list_devices()
-    print('-' * 40)
     return True
 
 def scan_devices(bus, timeout):
