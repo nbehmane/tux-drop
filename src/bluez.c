@@ -19,13 +19,13 @@
 
 /**
  * @brief Callback called when a new device (interface) is added.
- * @param sig
- * @param sender_name
- * @param object_path
- * @param interface
- * @param signal_name
- * @param parameters
- * @param user_data
+ * @param sig A pointer to a GDBusConnection.
+ * @param sender_name Path to the object/service that emitted this signal.
+ * @param object_path Path of the object that received this signal.
+ * @param interface Interface used to emit this signal.
+ * @param signal_name The signal emitted.
+ * @param parameters Parameters passed to this signal.
+ * @param user_data User specific data.
  */
 void bluez_iface_appeared(GDBusConnection *sig,
                            const gchar *sender_name,
@@ -71,8 +71,8 @@ void bluez_iface_appeared(GDBusConnection *sig,
 
 /**
  * @brief Prints out property values.
- * @param key
- * @param value
+ * @param key Key name
+ * @param value A pointer to a GVariant containing the value to be printed.
  */
 void bluez_property_value(const gchar *key, GVariant *value)
 {
@@ -108,11 +108,11 @@ void bluez_property_value(const gchar *key, GVariant *value)
 }
 
 /**
- * @brief A little more percise way of changing properties.
- * @param conn
- * @param obj_path
- * @param method
- * @return
+ * @brief A little more precise way of changing properties.
+ * @param conn A pointer to a GDBusConnection.
+ * @param obj_path Object path of the Bluetooth controller.
+ * @param method A method, either "GetAll", or "Get"
+ * @return A GVariant containing the properties.
  */
 GVariant* bluez_adapter_properties_call(GDBusConnection *conn,
                               const char *obj_path, // This is currently hardcoded. This will need to change.
@@ -125,7 +125,6 @@ GVariant* bluez_adapter_properties_call(GDBusConnection *conn,
      * The available methods are
      * 1. GetAll
      * 2. Get
-     * 3. Set
      */
 
     response =  g_dbus_connection_call_sync(
@@ -182,13 +181,13 @@ int bluez_adapter_call_method(GDBusConnection *conn, const char *method)
 
 /**
  * @brief When the adapter changes, this callback function is called.
- * @param conn
- * @param sender
- * @param path
- * @param interface
- * @param signal
- * @param params
- * @param userdata
+ * @param conn A pointer to a GDBusConnection.
+ * @param sender Path to the object/service that emitted this signal.
+ * @param path Path of the object that received this signal.
+ * @param interface Interface used to emit this signal.
+ * @param signal The signal emitted.
+ * @param params Parameters passed to this signal.
+ * @param userdata User specific data.
  */
 void bluez_signal_adapter_changed(GDBusConnection *conn,
                                   const gchar *sender,
@@ -244,45 +243,52 @@ void bluez_signal_adapter_changed(GDBusConnection *conn,
 
 /**
  * @brief Sets a property value for the HCI adapter.
- * @param conn
- * @param prop
- * @param value
- * @return
+ * @param conn A pointer to a GDBusConnection.
+ * @param prop The name of the property to set.
+ * @param value The value to set the property.
+ * @return 0 if sucess, 1 otherwise.
  */
 int bluez_adapter_set_property(GDBusConnection *conn, const char *prop, GVariant *value)
 {
+    //! GVariant pointer to hold result from bus call..
     GVariant *result;
     GError *error = NULL;
 
+    //! "org.bluez" -> The service that contains the object.
+    //! "/org/bluez/hci0" -> The object to call the method 'set' on.
+    //! "org.freedesktop.DBus.Properties" -> Interface that describes the method 'set'.
     result = g_dbus_connection_call_sync(conn,
                                          "org.bluez",
                                          "/org/bluez/hci0",
                                          "org.freedesktop.DBus.Properties",
                                          "Set",
+                                         //! Note: floating pointer, will be consumed.
                                          g_variant_new("(ssv)", "org.bluez.Adapter1", prop, value),
                                          NULL,
                                          G_DBUS_CALL_FLAGS_NONE,
                                          -1,
                                          NULL,
                                          &error);
+
     if(error != NULL)
         return 1;
 
+    //! Dereference the result, thus freeing it.
     g_variant_unref(result);
     return 0;
 }
 
 /**
  * @brief Prints out devices that were scanned using -s.
- * @param device_table
+ * @param device_table A pointer to a GHashTable.
  */
 void bluez_scan_print_devices(GHashTable *device_table)
 {
     GHashTableIter iter;
     gpointer key, value;
     int i = 0;
-    /** TODO: Check that device_table is of GHashTable type. **/
 
+    /** TODO: Check that device_table is of GHashTable type. **/
     g_hash_table_iter_init(&iter, device_table);
     while (g_hash_table_iter_next(&iter, &key, &value))
     {
@@ -294,7 +300,7 @@ void bluez_scan_print_devices(GHashTable *device_table)
 
 /**
  * @brief Remove devices that have been scanned.
- * @param device_table
+ * @param device_table A pointer to a GHashTable.
  */
 void bluez_scan_remove_devices(GHashTable *device_table)
 {
@@ -302,6 +308,11 @@ void bluez_scan_remove_devices(GHashTable *device_table)
     g_hash_table_unref(device_table);
 }
 
+/**
+ * @brief A timeout signal to exit the program.
+ * @param loop A pointer to the g_main_loop.
+ * @return returns False.
+ */
 gboolean bluez_scan_timeout_signal(gpointer loop)
 {
     g_main_loop_quit(loop);
@@ -310,7 +321,6 @@ gboolean bluez_scan_timeout_signal(gpointer loop)
 
 /**
  * @brief Registers the autopair agent.
- *
  * @param conn Connection handle to dbus.
  */
 int bluez_register_autopair_agent(GDBusConnection *conn)
@@ -332,7 +342,6 @@ int bluez_register_autopair_agent(GDBusConnection *conn)
 
 /**
  * @brief Calls a given method with parameters to the agent manager.
- *
  * @param method The method to be called.
  * @param param The parameters to be passed to the method.
  * @param conn Connection handle to dbus.
@@ -426,7 +435,7 @@ void bluez_signal_connection_props_changed(GDBusConnection *sig,
     GError *error;
 
     if(g_strcmp0(signature, "(sa{sv}as)") != 0) {
-        g_print("Invalid signature for %s: %s != %s", signal, signature, "(sa{sv}as)");
+        g_print("Invalid signature for %s: %s != %s", signal_name, signature, "(sa{sv}as)");
         goto done;
     }
 
@@ -517,7 +526,7 @@ char* bluez_choose_device(GHashTable *device_table)
     int i = 0;
     /** TODO: Check that device_table is of GHashTable type. **/
 
-    g_print("Choose device by inputting device number: ");
+    g_print("Choose device by inputting device index: ");
     int device_chosen = 0;
     scanf("%d", &device_chosen);
 
@@ -533,6 +542,6 @@ char* bluez_choose_device(GHashTable *device_table)
         i += 1;
     }
     char *str = malloc(sizeof(char) * 40);
-    str = "/org/bluez/hci0/dev_5C_87_30_66_F4_35";
+    str = "/org/bluez/hci0/dev_5C_87_30_66_F4_35"; // Debug statement get rid of this.
     return str;
 }
