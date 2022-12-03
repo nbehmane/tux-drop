@@ -247,7 +247,7 @@ int cli_run(int argc, char **argv)
                 if (error != NULL)
                     g_error(error->message);
 
-                /*
+                /** This is the one way of doing it.
                 g_dbus_connection_call_sync(
                          conn,
                         "org.bluez.obex",
@@ -263,8 +263,9 @@ int cli_run(int argc, char **argv)
 
                 if (error != NULL)
                     g_error(error->message);
-                    */
-                /*
+                */
+
+                /** This is another way of doing it.
                 GDBusMessage *call = g_dbus_message_new_method_call(
                         "org.bluez.obex",
                         "/org/bluez/obex",
@@ -282,8 +283,9 @@ int cli_run(int argc, char **argv)
                         NULL,
                         &error
                         );
-                        */
+                */
 
+                /** Here's the third way.
                 GDBusProxy *proxy = g_dbus_proxy_new_sync(
                         session_conn,
                         G_DBUS_PROXY_FLAGS_NONE,
@@ -307,14 +309,15 @@ int cli_run(int argc, char **argv)
                         NULL,
                         &error
                         );
-                while (1);
+
+                while (1); //Debug statement.
 
                 if (error != NULL)
                     g_error(error->message);
+                    */
 
-                g_print("HIT MAIN LOOP\n");
                 loop = g_main_loop_new(NULL, FALSE);
-                //g_timeout_add_seconds(connection_timeout, bluez_scan_timeout_signal, loop);
+                g_timeout_add_seconds(connection_timeout, bluez_scan_timeout_signal, loop);
                 g_main_loop_run(loop); // Blocking call (:
 
 
@@ -324,6 +327,45 @@ int cli_run(int argc, char **argv)
                 break;
             case 'd': // Disconnect
                 g_print("Disconnect\n");
+                int disconnect_timeout = 10;
+                guint disconnect_device_props_changed = 0;
+                device_path = bluez_choose_device(devices);
+
+                disconnect_device_props_changed = g_dbus_connection_signal_subscribe(
+                        conn,
+                        "org.bluez",
+                        "org.freedesktop.DBus.Properties",
+                        "PropertiesChanged",
+                        device_path,
+                        "org.bluez.Device1",
+                        G_DBUS_SIGNAL_FLAGS_NONE,
+                        bluez_signal_pairing_props_changed,
+                        NULL,
+                        NULL);
+
+                g_dbus_connection_call_sync(
+                        conn,
+                        BLUEZ_ORG,
+                        device_path,
+                        "org.bluez.Device1",
+                        "Disconnect",
+                        NULL,
+                        NULL,
+                        G_DBUS_CALL_FLAGS_NONE,
+                        -1,
+                        NULL,
+                        &error);
+
+                if (error != NULL)
+                    g_error(error->message);
+
+                loop = g_main_loop_new(NULL, FALSE);
+                g_timeout_add_seconds(disconnect_timeout, bluez_scan_timeout_signal, loop);
+                g_main_loop_run(loop); // Blocking call (:
+
+                g_dbus_connection_signal_unsubscribe(conn, disconnect_device_props_changed);
+                g_main_loop_unref(loop);
+                g_print("Disconnected.");
                 break;
             case 'r': // Remove device
                 g_print("Remove Device\n");
