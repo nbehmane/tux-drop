@@ -51,7 +51,7 @@ void dbus_print_string_dict(GVariant *dict);
 */
 void dbus_print_dict_val(GVariant *dict);
 
-/*
+/**
  * @brief Closes a DBus connection.
  *
  * @param conn A connection to dbus.
